@@ -1,0 +1,32 @@
+stages:
+  split:
+    cmd: python src/modeling.py split-data data/iris_db.csv
+    deps:
+    - data/iris_db.csv
+    params:
+    - split.test_size
+    outs:
+    - data/training.csv
+    - data/test.csv
+  model:
+    cmd: python src/modeling.py make-model data/training.csv models/params/best_params.joblib
+      models/model.pkl
+    deps:
+    - data/training.csv
+    outs:
+    - models/model.pkl
+  predict:
+    cmd: python src/modeling.py predict models/model.pkl data/test.csv data/preds.pkl
+    deps:
+    - models/model.pkl
+    - data/test.csv
+    outs:
+    - data/preds.pkl
+  evaluate:
+    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv
+    params:
+    - evaluate.thresh
+    deps:
+    - models/model.pkl
+    - data/preds.pkl
+    - data/test.csv

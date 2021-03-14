@@ -1,0 +1,57 @@
+schema: '2.0'
+stages:
+  model:
+    cmd: python src/modeling.py make-model data/training.csv models/params/best_params.joblib
+      models/model.pkl
+    deps:
+    - path: data/training.csv
+      md5: e994732599a065976f7c01dde83bfe05
+      size: 1673
+    outs:
+    - path: models/model.pkl
+      md5: 3c5c1ee94b854b52eb2e86a697d8e2fb
+      size: 878
+  split:
+    cmd: python src/modeling.py split-data data/iris_db.csv
+    deps:
+    - path: data/iris_db.csv
+      md5: 4d301abed5efe50eccda350cde38e0eb
+      size: 2777
+    params:
+      params.yaml:
+        split.test_size: 0.5
+    outs:
+    - path: data/test.csv
+      md5: 247fde44439a41832fab66119a48935b
+      size: 1673
+    - path: data/training.csv
+      md5: e994732599a065976f7c01dde83bfe05
+      size: 1673
+  predict:
+    cmd: python src/modeling.py predict models/model.pkl data/test.csv data/preds.pkl
+    deps:
+    - path: data/test.csv
+      md5: 247fde44439a41832fab66119a48935b
+      size: 1673
+    - path: models/model.pkl
+      md5: 3c5c1ee94b854b52eb2e86a697d8e2fb
+      size: 878
+    outs:
+    - path: data/preds.pkl
+      md5: d32796bc40321ee015d27df50722f264
+      size: 1928
+  evaluate:
+    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv
+    deps:
+    - path: data/preds.pkl
+      md5: d32796bc40321ee015d27df50722f264
+      size: 1928
+    - path: data/test.csv
+      md5: 247fde44439a41832fab66119a48935b
+      size: 1673
+    - path: models/model.pkl
+      md5: 3c5c1ee94b854b52eb2e86a697d8e2fb
+      size: 878
+    params:
+      params.yaml:
+        evaluate.thresh: 0.5
