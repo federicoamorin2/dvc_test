@@ -41,7 +41,8 @@ stages:
       md5: d32796bc40321ee015d27df50722f264
       size: 1928
   evaluate:
-    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv
+    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv results/scores.json
+      results/plots/
     deps:
     - path: data/preds.pkl
       md5: d32796bc40321ee015d27df50722f264
@@ -55,3 +56,16 @@ stages:
     params:
       params.yaml:
         evaluate.thresh: 0.5
+    outs:
+    - path: results/plots/pr_curve_0.json
+      md5: a22ae58c3659e35b5d7ed5591512eeba
+      size: 3201
+    - path: results/plots/pr_curve_1.json
+      md5: fcd46587383812d6ac67737482384f3e
+      size: 3708
+    - path: results/plots/pr_curve_2.json
+      md5: 998f0f38405cfab09a6648c4f9918739
+      size: 3202
+    - path: results/scores.json
+      md5: 014ce8e748209da065d8a5d755179fff
+      size: 73

@@ -23,10 +23,16 @@ stages:
     outs:
     - data/preds.pkl
   evaluate:
-    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv
+    cmd: python src/modeling.py evaluate data/preds.pkl data/test.csv results/scores.json results/plots/
     params:
     - evaluate.thresh
     deps:
     - models/model.pkl
     - data/preds.pkl
     - data/test.csv
+    metrics:
+    - results/scores.json
+    plots:
+    - results/plots/pr_curve_0.json
+    - results/plots/pr_curve_1.json
+    - results/plots/pr_curve_2.json  
