@@ -1,12 +1,18 @@
+import json
 import pickle
 from pathlib import Path
 
 import pandas as pd
 import typer
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, classification_report
 import yaml
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+    precision_recall_curve,
+)
+from sklearn.model_selection import train_test_split
 
 PARAMS = yaml.safe_load(open("params.yaml"))
 app = typer.Typer()
@@ -73,14 +79,16 @@ def predict(model_path: Path, test_df_path: Path, predict_path: Path) -> None:
     with open(model_path, "rb") as fd:
         model = pickle.load(fd)
     preds = model.predict_proba(x_test)
-    print(preds)
+
     # Persist predictions...
     with open(predict_path, "wb") as fd:
         pickle.dump(preds, fd, pickle.HIGHEST_PROTOCOL)
 
 
 @app.command()
-def evaluate(predict_file: Path, test_df_path: Path) -> None:
+def evaluate(
+    predict_file: Path, test_df_path: Path, scores_file: Path, plots_path: Path
+) -> None:
     """Compute and persist model metrics.
 
     Args:
@@ -89,8 +97,8 @@ def evaluate(predict_file: Path, test_df_path: Path) -> None:
         thresh (float): Classification threshold to use in experiment.
     """
 
+    # Load params, predicted and true test values.
     params = PARAMS["evaluate"]
-    # Load predicted and true test values.
     with open(predict_file, "rb") as fd:
         predict = pickle.load(fd)
     y_test = pd.read_csv(test_df_path).loc[:, "target"]
@@ -104,8 +112,33 @@ def evaluate(predict_file: Path, test_df_path: Path) -> None:
     )
 
     # Compute metrics and persist
-    print(confusion_matrix(y_test, final_preds))
-    print(classification_report(y_test_dummies, binary_preds))
+    confsn_matrix = confusion_matrix(y_test, final_preds)
+    roc_auc = roc_auc_score(y_test_dummies, binary_preds)
+
+    with open(scores_file, "w") as fd:
+        true_positives_dict = {
+            f"true_pos_{i}": str(confsn_matrix[i][i])
+            for i in range(y_test_dummies.columns.shape[0])
+        }
+        true_positives_dict["roc_auc"] = roc_auc
+        json.dump(true_positives_dict, fd, indent=4)
+
+    for category in y_test_dummies.columns:
+        file_name = f"pr_curve_{category}.json"
+        with open(plots_path / file_name, "w") as fd:
+            precision, recall, prc_thresholds = precision_recall_curve(
+                y_test_dummies.loc[:, category], predict[:, category]
+            )
+            json.dump(
+                {
+                    "prc": [
+                        {"precision": p, "recall": r, "threshold": t}
+                        for p, r, t in zip(precision, recall, prc_thresholds)
+                    ]
+                },
+                fd,
+                indent=4,
+            )
 
 
 if __name__ == "__main__":
